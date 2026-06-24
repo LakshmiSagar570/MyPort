@@ -1,0 +1,2252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lakshmi Sagar Seshadri — High-Performance Systems & AI Research Engineer</title>
+  <meta name="description" content="Systems & AI Research Engineer. Acceptances at Springer LNNS / ICTIS 2026. Specializing in high-throughput LLM inference, Triton GPU kernels compilation, and PagedAttention architectures.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Three.js for WebGL PagedAttention simulator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       CORE DESIGN SYSTEM (Industrial Cyber-Print)
+       ═══════════════════════════════════════════════════════════ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #030306;
+      --bg-elevated: #08080f;
+      --border: rgba(0, 240, 255, 0.06);
+      --border-strong: rgba(0, 240, 255, 0.15);
+      
+      /* Neon Luminous Palette */
+      --cyan: #00f0ff;
+      --violet: #8a2be2;
+      --green: #00ff66;
+      --amber: #ff9900;
+      --rose: #ff2d55;
+      
+      --cyan-rgb: 0, 240, 255;
+      --violet-rgb: 138, 43, 226;
+      --green-rgb: 0, 255, 102;
+      --amber-rgb: 255, 153, 0;
+
+      --text-primary: #f0f3fa;
+      --text-secondary: #9aa0b0;
+      --text-muted: #51586a;
+      
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-display: 'Plus Jakarta Sans', sans-serif;
+      
+      --transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      --grid-line: 1px solid rgba(0, 240, 255, 0.05);
+      --grid-bg: linear-gradient(to right, rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+                 linear-gradient(to bottom, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+    }
+
+    body.light-mode {
+      --bg: #f8fafc;
+      --bg-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.06);
+      --border-strong: rgba(0, 0, 0, 0.12);
+      
+      --cyan: #0284c7;
+      --violet: #7c3aed;
+      --green: #16a34a;
+      --amber: #d97706;
+      --rose: #e11d48;
+      
+      --cyan-rgb: 2, 132, 199;
+      --violet-rgb: 124, 58, 237;
+      --green-rgb: 22, 163, 74;
+      --amber-rgb: 217, 119, 6;
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --grid-line: 1px solid rgba(0, 0, 0, 0.03);
+      --grid-bg: linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                 linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(var(--cyan-rgb), 0.2) transparent;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, var(--cyan), var(--violet));
+      border-radius: 2px;
+    }
+
+    /* Screen Scanlines and Film Grain */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 255, 0, 0.06));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.45;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9998;
+      mix-blend-mode: overlay;
+    }
+
+    body {
+      background: var(--bg);
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* Technical grid wireframe layout */
+    .grid-container {
+      background-image: var(--grid-bg);
+      background-size: 40px 40px;
+      min-height: 100vh;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      max-width: 1440px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CUSTOM SYSTEM TARGET CURSOR
+       ═══════════════════════════════════════════════════════════ */
+    #sys-cursor {
+      position: fixed;
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(var(--cyan-rgb), 0.3);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 100000;
+      transform: translate(-50%, -50%);
+      transition: width 0.3s var(--transition), height 0.3s var(--transition), border-color 0.3s;
+    }
+    #sys-cursor::before {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--cyan);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #sys-cursor::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 1px dashed rgba(var(--violet-rgb), 0.2);
+      border-radius: 50%;
+      animation: rotate 10s linear infinite;
+    }
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+    body.hovering #sys-cursor {
+      width: 48px;
+      height: 48px;
+      border-color: var(--green);
+      background: rgba(0, 255, 102, 0.02);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SYSTEM LOAD BAR HEADER (GPU Live telemetry status)
+       ═══════════════════════════════════════════════════════════ */
+    .telemetry-bar {
+      width: 100%;
+      background: rgba(8, 8, 15, 0.95);
+      border-bottom: 1px solid var(--border-strong);
+      padding: 8px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      backdrop-filter: blur(12px);
+    }
+    .tel-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tel-val {
+      color: var(--cyan);
+      font-weight: 700;
+    }
+    .tel-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: flash 1.5s infinite alternate;
+    }
+    @keyframes flash {
+      from { opacity: 0.3 }
+      to { opacity: 1 }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       NAVIGATION LAYOUT
+       ═══════════════════════════════════════════════════════════ */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo span {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(var(--cyan-rgb), 0.2), rgba(var(--violet-rgb), 0.2));
+      border: 1px solid var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+      box-shadow: 0 0 8px rgba(var(--cyan-rgb), 0.15);
+    }
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 32px;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: var(--transition);
+      position: relative;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--cyan);
+    }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--cyan);
+      transition: var(--transition);
+    }
+    .nav-links a:hover::after, .nav-links a.active::after {
+      width: 100%;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       HERO & 3D PAGEDATTENTION CONSOLE
+       ═══════════════════════════════════════════════════════════ */
+    .hero-console {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      border-bottom: 1px solid var(--border);
+      min-height: calc(100vh - 90px);
+    }
+    @media (max-width: 1024px) {
+      .hero-console {
+        grid-template-columns: 1fr;
+      }
+    }
+    .hero-info {
+      padding: 80px 40px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    @media (max-width: 1024px) {
+      .hero-info {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+    .hero-system-status {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .hero-title h1 {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: clamp(2.8rem, 6vw, 5.2rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+    .hero-title h1 span.accent-h {
+      color: transparent;
+      -webkit-text-stroke: 1px var(--text-primary);
+    }
+    .hero-desc {
+      font-size: 1.15rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      max-width: 580px;
+      margin-bottom: 48px;
+    }
+    .hero-desc strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    /* Interactive control buttons */
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .btn-terminal {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 14px 28px;
+      border: 1px solid var(--cyan);
+      background: linear-gradient(135deg, rgba(var(--cyan-rgb), 0.05) 0%, rgba(var(--violet-rgb), 0.02) 100%);
+      color: var(--cyan);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .btn-terminal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: 0.5s;
+    }
+    .btn-terminal:hover::before {
+      left: 100%;
+    }
+    .btn-terminal:hover {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+      color: #030306;
+      border-color: transparent;
+      box-shadow: 0 0 24px rgba(var(--cyan-rgb), 0.3);
+    }
+    .btn-terminal-sec {
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+    }
+    .btn-terminal-sec:hover {
+      border-color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+      color: var(--text-primary);
+      box-shadow: none;
+    }
+
+    /* 3D PagedAttention Simulator Layer */
+    .hero-simulator {
+      background: var(--bg-elevated);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+    .sim-viewport {
+      flex-grow: 1;
+      position: relative;
+      min-height: 400px;
+    }
+    .sim-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .sim-control-panel {
+      border-top: 1px solid var(--border);
+      background: rgba(8, 8, 15, 0.8);
+      padding: 24px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      z-index: 10;
+    }
+    .sim-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .sim-btn {
+      padding: 8px 12px;
+      border: 1px dashed var(--border-strong);
+      background: rgba(255,255,255,0.02);
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .sim-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .sim-btn.active {
+      border-color: var(--green);
+      color: var(--green);
+      background: rgba(0,255,102,0.02);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION GENERAL STYLING
+       ═══════════════════════════════════════════════════════════ */
+    section {
+      border-bottom: 1px solid transparent;
+      padding: 100px 40px;
+      position: relative;
+    }
+    section::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border-strong) 20%, var(--border-strong) 80%, transparent);
+    }
+    section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(var(--cyan-rgb), 0.015), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    @media (max-width: 768px) {
+      section {
+        padding: 60px 24px;
+      }
+    }
+
+    #hero::before {
+      background: radial-gradient(circle at 70% 30%, rgba(var(--cyan-rgb), 0.04), rgba(var(--violet-rgb), 0.02) 50%, transparent 80%);
+    }
+    #kernel::before {
+      background: radial-gradient(circle at 30% 50%, rgba(var(--green-rgb), 0.03), rgba(var(--cyan-rgb), 0.02) 60%, transparent 90%);
+    }
+    #contact::before {
+      background: radial-gradient(circle at 50% 50%, rgba(var(--violet-rgb), 0.05), rgba(var(--cyan-rgb), 0.03) 70%, transparent 95%);
+    }
+
+    .section-header {
+      margin-bottom: 56px;
+      position: relative;
+      z-index: 2;
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--cyan);
+      box-shadow: 0 0 6px var(--cyan);
+      border-radius: 50%;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      position: relative;
+    }
+    .gradient {
+      background: linear-gradient(135deg, var(--cyan) 0%, #00bcff 50%, var(--violet) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       00 — MANIFESTO
+       ═══════════════════════════════════════════════════════════ */
+    .manifesto-panel {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .manifesto-index {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--cyan);
+      margin-bottom: 24px;
+      display: block;
+    }
+    .manifesto-text {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+    }
+    .manifesto-text span.highlight {
+      color: var(--cyan);
+      position: relative;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       01 — BENTO BIO & TELEMETRY
+       ═══════════════════════════════════════════════════════════ */
+    .bento-container {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 968px) {
+      .bento-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .bento-card {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: var(--transition);
+    }
+    .bento-card:hover {
+      border-color: rgba(var(--cyan-rgb), 0.3);
+      box-shadow: 0 10px 30px -15px rgba(var(--cyan-rgb), 0.25), 0 0 20px -5px rgba(var(--violet-rgb), 0.1);
+      transform: translateY(-2px);
+    }
+    .card-indicator {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 32px;
+      height: 32px;
+      border-left: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--text-muted);
+    }
+    .bento-bio-p {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .bento-bio-p strong {
+      color: var(--text-primary);
+    }
+    .bento-specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 32px;
+      border-top: 1px solid var(--border);
+      padding-top: 32px;
+    }
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .spec-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .spec-val {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--cyan);
+    }
+
+    /* Live Telemetry System dashboard */
+    .bento-telemetry {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .tel-metric-card {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .tel-metric-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+    }
+    .tel-progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .tel-progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: var(--cyan);
+      transition: width 0.5s ease;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       02 — HARDWARE-TO-SOFTWARE COMPILER STACK
+       ═══════════════════════════════════════════════════════════ */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1024px) {
+      .stack-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 580px) {
+      .stack-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .stack-layer {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      min-height: 380px;
+      transition: var(--transition);
+    }
+    .stack-layer:hover {
+      border-color: rgba(var(--cyan-rgb), 0.4);
+      box-shadow: 0 10px 30px -15px rgba(var(--cyan-rgb), 0.25), 0 0 20px -5px rgba(var(--violet-rgb), 0.1);
+      transform: translateY(-2px);
+    }
+    .layer-num {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .layer-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+    .layer-skills {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-grow: 1;
+    }
+    .skill-card {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: var(--transition);
+    }
+    .skill-card:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      transform: translateX(4px);
+    }
+    .skill-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       03 — TRITON ATTENTION KERNEL PLAYGROUND (Memorability Anchor)
+       ═══════════════════════════════════════════════════════════ */
+    .kernel-simulator {
+      max-width: 1200px;
+      margin: 48px auto 0 auto;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+    @media (max-width: 1024px) {
+      .kernel-simulator {
+        grid-template-columns: 1fr;
+      }
+    }
+    .kernel-visualizer {
+      padding: 40px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    @media (max-width: 1024px) {
+      .kernel-visualizer {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+    .kernel-grid-view {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: center;
+    }
+    .matrix-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .matrix-title {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .matrix-cell {
+      width: 24px;
+      height: 24px;
+      border: 1px solid rgba(255,255,255,0.02);
+      background: rgba(255,255,255,0.01);
+      transition: background 0.3s;
+    }
+    .matrix-cell.active-q { background: rgba(0, 240, 255, 0.4); border-color: var(--cyan); }
+    .matrix-cell.active-k { background: rgba(138, 43, 226, 0.4); border-color: var(--violet); }
+    .matrix-cell.active-v { background: rgba(0, 255, 102, 0.4); border-color: var(--green); }
+    
+    .sram-buffer {
+      border: 1px dashed var(--cyan);
+      background: rgba(0, 240, 255, 0.01);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 8px;
+    }
+    .sram-cell {
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+    }
+    .sram-cell.loading {
+      background: var(--amber);
+      animation: pulseCell 0.5s infinite alternate;
+    }
+    @keyframes pulseCell {
+      from { opacity: 0.4 }
+      to { opacity: 1 }
+    }
+
+    .kernel-controls {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .control-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+    .slider-sys {
+      width: 100%;
+      accent-color: var(--cyan);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      height: 6px;
+      outline: none;
+    }
+    .kernel-terminal-out {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      min-height: 160px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .kernel-line {
+      margin-bottom: 6px;
+    }
+    .kernel-line.prompt::before {
+      content: 'triton-compiler> ';
+      color: var(--cyan);
+    }
+    .kernel-line.info { color: var(--amber); }
+    .kernel-line.success { color: var(--green); }
+
+    /* ═══════════════════════════════════════════════════════════
+       04 — TIMELINE BLUEPRINTS (Selected works)
+       ═══════════════════════════════════════════════════════════ */
+    .timeline-blueprints {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 28px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 480px) {
+      .timeline-blueprints {
+        grid-template-columns: 1fr;
+      }
+    }
+    .blueprint-card {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 380px;
+      position: relative;
+      transition: var(--transition);
+    }
+    .blueprint-card:hover {
+      border-color: rgba(var(--cyan-rgb), 0.3);
+      box-shadow: 0 10px 30px -15px rgba(var(--cyan-rgb), 0.25), 0 0 20px -5px rgba(var(--violet-rgb), 0.1);
+      transform: translateY(-2px);
+    }
+    .bp-header {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .bp-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .bp-desc {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      flex-grow: 1;
+    }
+    .bp-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .bp-tech {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--cyan);
+    }
+    .bp-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--cyan);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: auto;
+    }
+    .bp-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       05 — ACADEMIC RESEARCH TIMELINE
+       ═══════════════════════════════════════════════════════════ */
+    .research-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1024px) {
+      .research-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .research-featured {
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-left: 4px solid var(--cyan);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .research-featured:hover {
+      border-color: rgba(var(--cyan-rgb), 0.3);
+      box-shadow: 0 10px 30px -15px rgba(var(--cyan-rgb), 0.25), 0 0 20px -5px rgba(var(--violet-rgb), 0.1);
+      transform: translateY(-2px);
+    }
+    .res-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .res-title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 20px;
+    }
+    .res-desc {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+    .res-meta-table {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+    .res-meta-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .res-meta-lbl {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .res-meta-val {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--cyan);
+    }
+
+    .research-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .research-item-card {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      padding: 24px;
+      transition: var(--transition);
+    }
+    .research-item-card:hover {
+      border-color: rgba(var(--cyan-rgb), 0.3);
+      box-shadow: 0 5px 15px -5px rgba(var(--cyan-rgb), 0.15);
+      transform: translateX(4px);
+    }
+    .res-item-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .res-item-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .res-item-desc {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       06 — CONTACT TERMINAL
+       ═══════════════════════════════════════════════════════════ */
+    .contact-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .contact-title {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      text-transform: uppercase;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+    }
+    .contact-title span.glow {
+      color: var(--cyan);
+      text-shadow: 0 0 20px rgba(var(--cyan-rgb), 0.4);
+    }
+    .contact-text {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+    }
+    .contact-deck {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 580px) {
+      .contact-deck {
+        grid-template-columns: 1fr;
+      }
+    }
+    .contact-spec-btn {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: var(--transition);
+      position: relative;
+    }
+    .contact-spec-btn:hover {
+      border-color: rgba(var(--cyan-rgb), 0.3);
+      background: linear-gradient(135deg, rgba(var(--cyan-rgb), 0.05) 0%, rgba(var(--violet-rgb), 0.02) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px -12px rgba(var(--cyan-rgb), 0.3);
+    }
+    .contact-btn-icon {
+      font-size: 1.6rem;
+      color: var(--cyan);
+    }
+    .contact-btn-lbl {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .contact-btn-val {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .contact-btn-wide {
+      grid-column: span 2;
+    }
+    @media (max-width: 580px) {
+      .contact-btn-wide {
+        grid-column: span 1;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════════════ */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-elevated);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    @media (max-width: 768px) {
+      footer {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+    }
+    .footer-right {
+      color: var(--cyan);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       3D PERSPECTIVE TILT UTILS
+       ═══════════════════════════════════════════════════════════ */
+    .tilt-card {
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       THEME TOGGLE & LOADER SCREEN
+       ═══════════════════════════════════════════════════════════ */
+    .btn-theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .btn-theme-toggle:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 10px rgba(var(--cyan-rgb), 0.2);
+    }
+    body.light-mode .sun-icon {
+      display: none !important;
+    }
+    body.light-mode .moon-icon {
+      display: block !important;
+    }
+
+    body.light-mode .logo span {
+      color: var(--cyan);
+      background: rgba(var(--cyan-rgb), 0.08);
+      border-color: rgba(var(--cyan-rgb), 0.2);
+      box-shadow: none;
+    }
+    body.light-mode .telemetry-bar {
+      background: rgba(248, 250, 252, 0.95);
+      border-bottom-color: var(--border);
+    }
+    body.light-mode::before {
+      opacity: 0.15;
+    }
+    body.light-mode::after {
+      opacity: 0.015;
+    }
+
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      transition: opacity 0.5s ease, visibility 0.5s;
+    }
+    #loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .loader-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 2rem;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+    .loader-bar {
+      width: 200px;
+      height: 2px;
+      background: rgba(var(--cyan-rgb), 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .loader-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
+      position: absolute;
+      left: -100%;
+      animation: load 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes load {
+      to { left: 0%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Custom System Target Cursor -->
+  <div id="sys-cursor"></div>
+
+  <!-- Loader Overlay -->
+  <div id="loader">
+    <div class="loader-logo">L.S.SESHADRI</div>
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+  </div>
+
+  <div class="grid-container">
+
+    <!-- Live Telemetry GPU Load Header -->
+    <header class="telemetry-bar">
+      <div class="tel-item"><div class="tel-dot"></div>SYS LOAD: <span class="tel-val" id="sys-load">92.4%</span></div>
+      <div class="tel-item">GPU-0: <span class="tel-val">H100 SXM5</span></div>
+      <div class="tel-item">TEMP: <span class="tel-val" id="sys-temp">68°C</span></div>
+      <div class="tel-item">VRAM: <span class="tel-val" id="sys-vram">78.4 GB / 80.0 GB</span></div>
+      <div class="tel-item">COMPILER: <span class="tel-val" id="sys-compiler">IDLE</span></div>
+    </header>
+
+    <!-- Navigation Header -->
+    <nav>
+      <a href="#" class="logo">LS.SESHADRI <span>SYS_ENG</span></a>
+      <ul class="nav-links">
+        <li><a href="#manifesto" class="active">Manifesto</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#stack">Stack</a></li>
+        <li><a href="#kernel">Playground</a></li>
+        <li><a href="#projects">Works</a></li>
+        <li><a href="#research">Research</a></li>
+      </ul>
+      <div class="nav-actions" style="display: flex; align-items: center; gap: 16px;">
+        <button id="theme-toggle" class="btn-theme-toggle" title="Toggle System Mode">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <a href="mailto:lakshmisagar570@gmail.com" class="btn-terminal magnetic">TALK_GATEWAY</a>
+      </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         HERO SECTION WITH 3D PAGEDATTENTION CONSOLE
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="hero-console" id="hero">
+      <div class="hero-info">
+        <div>
+          <div class="hero-system-status">
+            <span class="mono">[ INFERENCE ENGINE PROTOCOL ACTIVE ]</span>
+          </div>
+          <div class="hero-title">
+            <h1>Building Systems<br><span class="accent-h">A Year Ahead</span></h1>
+          </div>
+          <p class="hero-desc">
+            Hi, I'm Lakshmi Sagar Seshadri. I specialize in designing and engineering high-performance **ML inference servers**, compiled **Triton attention kernels**, and decentralized vector databases.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <a href="#kernel" class="btn-terminal magnetic">Run Attention Simulator</a>
+          <a href="#projects" class="btn-terminal btn-terminal-sec magnetic">Explore Specs</a>
+        </div>
+      </div>
+
+      <div class="hero-simulator">
+        <div class="sim-viewport" id="sim-3d-viewport">
+          <canvas class="sim-canvas" id="paged-attention-canvas"></canvas>
+        </div>
+        <div class="sim-control-panel">
+          <div>// Interactive PagedAttention KV Cache Console</div>
+          <div class="sim-grid">
+            <button class="sim-btn active" id="allocate-page-btn">Allocate Page</button>
+            <button class="sim-btn" id="generate-token-btn">Generate Token</button>
+            <button class="sim-btn" id="free-cache-btn">Free Cache</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         00 — MANIFESTO SECTION
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="manifesto">
+      <div class="manifesto-panel">
+        <span class="manifesto-index">// INDEX.00 / manifesto</span>
+        <h2 class="manifesto-text" id="manifesto-text">
+          I don't wait until I am <span class="highlight">supposed to</span> understand something. I reverse-engineer the frontier — from first principles, from scratch, before the textbook catches up. Every system I build is a proof: that years of experience is just an excuse for not thinking hard enough.
+        </h2>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         01 — BENTO BIOGRAPHY & LIVE DYNAMIC METRICS
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="about">
+      <div class="section-header">
+        <div class="section-label">01 — Background</div>
+        <h2 class="section-title">Who I <span class="gradient">Am</span></h2>
+      </div>
+
+      <div class="bento-container">
+        <div class="bento-card">
+          <div class="card-indicator">BIO</div>
+          <div>
+            <p class="bento-bio-p">
+              I am a final-year AI &amp; ML engineering student at <strong>MITS, Madanapalle</strong>. I build high-performance computation layers and inference kernels that represent real production architecture.
+            </p>
+            <p class="bento-bio-p">
+              My core research covers acceptance at <strong>Springer LNNS</strong> for presentation in Bangkok, detailing neural network deployments in engineering. My work bridges raw hardware limits with deep learning mathematical constraints.
+            </p>
+          </div>
+          <div class="bento-specs">
+            <div class="spec-item">
+              <span class="spec-label">Timeline Year</span>
+              <span class="spec-val">Year 4 (2023–27)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Specialization Focus</span>
+              <span class="spec-val">Systems &amp; Compilers</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bento-telemetry">
+          <div class="tel-metric-card">
+            <div class="tel-metric-header">
+              <span>GPU Compute Efficiency</span>
+              <span id="gpu-eff-val">94%</span>
+            </div>
+            <div class="tel-progress-track">
+              <div class="tel-progress-fill" id="gpu-eff-bar" style="width: 94%"></div>
+            </div>
+          </div>
+          
+          <div class="tel-metric-card">
+            <div class="tel-metric-header">
+              <span>Memory KV-Cache Compression</span>
+              <span id="cache-comp-val">82%</span>
+            </div>
+            <div class="tel-progress-track">
+              <div class="tel-progress-fill" id="cache-comp-bar" style="width: 82%"></div>
+            </div>
+          </div>
+
+          <div class="tel-metric-card">
+            <div class="tel-metric-header">
+              <span>Triton Warp Thread Occupancy</span>
+              <span id="thread-occ-val">88%</span>
+            </div>
+            <div class="tel-progress-track">
+              <div class="tel-progress-fill" id="thread-occ-bar" style="width: 88%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         02 — HARDWARE-TO-SOFTWARE COMPILER STACK
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="stack">
+      <div class="section-header">
+        <div class="section-label">02 — Stack Layering</div>
+        <h2 class="section-title">Systems &amp; <span class="gradient">Toolchain</span></h2>
+      </div>
+
+      <div class="stack-grid">
+        <div class="stack-layer">
+          <div class="layer-num">// L0. COMPUTE &amp; GPU</div>
+          <h3 class="layer-title">Hardware Math</h3>
+          <div class="layer-skills">
+            <div class="skill-card">CUDA Core Logic</div>
+            <div class="skill-card">Triton GPU Kernels</div>
+            <div class="skill-card">HBM/SRAM Layouts</div>
+            <div class="skill-card">Matrix Operations</div>
+          </div>
+        </div>
+
+        <div class="stack-layer">
+          <div class="layer-num">// L1. FRAMEWORKS</div>
+          <h3 class="layer-title">Deep Learning</h3>
+          <div class="layer-skills">
+            <div class="skill-card"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/pytorch/pytorch-original.svg" class="skill-icon" alt="PyTorch">PyTorch Layer</div>
+            <div class="skill-card">TensorFlow Engine</div>
+            <div class="skill-card">OpenCV Pipelines</div>
+            <div class="skill-card">XGBoost Decision</div>
+          </div>
+        </div>
+
+        <div class="stack-layer">
+          <div class="layer-num">// L2. SERVING SYSTEMS</div>
+          <h3 class="layer-title">Inference Execution</h3>
+          <div class="layer-skills">
+            <div class="skill-card">PagedAttention vLLM</div>
+            <div class="skill-card">FastAPI Serving</div>
+            <div class="skill-card">Docker Containers</div>
+            <div class="skill-card">Prometheus Exporter</div>
+          </div>
+        </div>
+
+        <div class="stack-layer">
+          <div class="layer-num">// L3. APPLICATION LAYERS</div>
+          <h3 class="layer-title">Product Interfaces</h3>
+          <div class="layer-skills">
+            <div class="skill-card">Next.js Dashboard</div>
+            <div class="skill-card">TypeScript logic</div>
+            <div class="skill-card">PostgreSQL Cache</div>
+            <div class="skill-card">Supabase Storage</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         03 — TRITON ATTENTION KERNEL PLAYGROUND (Anchor)
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="kernel">
+      <div class="section-header">
+        <div class="section-label">03 — Compilation Laboratory</div>
+        <h2 class="section-title">Triton Attention <span class="gradient">Playground</span></h2>
+      </div>
+
+      <div class="kernel-simulator">
+        <div class="kernel-visualizer">
+          <div>// Visualizing Memory loading Q, K, V Blocks to GPU Shared SRAM</div>
+          
+          <div class="kernel-grid-view">
+            <div class="matrix-wrapper">
+              <span class="matrix-title">Query Matrix (HBM)</span>
+              <div class="matrix-grid" id="matrix-q-grid">
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+              </div>
+            </div>
+            
+            <div class="matrix-wrapper">
+              <span class="matrix-title">Key Matrix (HBM)</span>
+              <div class="matrix-grid" id="matrix-k-grid">
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+              </div>
+            </div>
+
+            <div class="matrix-wrapper">
+              <span class="matrix-title">Value Matrix (HBM)</span>
+              <div class="matrix-grid" id="matrix-v-grid">
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+                <div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div><div class="matrix-cell"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sram-buffer" id="shared-sram-buffer">
+            <span class="matrix-title" style="align-self: center;">GPU Shared SRAM Buffer</span>
+            <div class="sram-cell"></div>
+            <div class="sram-cell"></div>
+            <div class="sram-cell"></div>
+            <div class="sram-cell"></div>
+          </div>
+        </div>
+
+        <div class="kernel-controls">
+          <div class="control-row">
+            <span class="control-label">BLOCK_M Size: <span id="block-m-val">32</span></span>
+            <input type="range" min="16" max="64" step="16" value="32" class="slider-sys" id="block-m-slider">
+          </div>
+
+          <div class="control-row">
+            <span class="control-label">BLOCK_N Size: <span id="block-n-val">32</span></span>
+            <input type="range" min="16" max="64" step="16" value="32" class="slider-sys" id="block-n-slider">
+          </div>
+
+          <button class="btn-terminal magnetic" id="run-kernel-btn">COMPILE &amp; BENCHMARK KERNEL</button>
+
+          <div class="kernel-terminal-out" id="kernel-log">
+            <div class="kernel-line">Compiler sandbox loaded. Status: IDLE.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         04 — ENGINEERING BLUEPRINTS (Works)
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="projects">
+      <div class="section-header">
+        <div class="section-label">04 — Engineering Blueprints</div>
+        <h2 class="section-title">Selected <span class="gradient">Projects</span></h2>
+      </div>
+
+      <div class="timeline-blueprints">
+        
+        <!-- Blueprint card 1: LFAN -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// FLAGSHIP DEEP LEARNING MODEL</div>
+            <h3 class="bp-title">LFAN — Lightweight Feature Attention Network</h3>
+            <p class="bp-desc">
+              Developed a lightweight convolutional neural network for ×4 single-image super-resolution, achieving 29.09 dB PSNR / 0.806 SSIM on the DIV2K dataset with only 731K parameters (2.93 MB) and 78 ms inference speed on a Tesla T4 GPU. Improved all 100/100 validation images over bicubic interpolation.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">Python</span>
+              <span class="bp-tech">PyTorch</span>
+              <span class="bp-tech">Google Colab</span>
+              <span class="bp-tech">Jupyter</span>
+            </div>
+            <a href="https://github.com/LakshmiSagar570/LFAN" target="_blank" class="bp-link">
+              View Repository Specs
+            </a>
+          </div>
+        </div>
+
+        <!-- Blueprint card 2: CropGuard AI -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// FULL-STACK COMPUTER VISION</div>
+            <h3 class="bp-title">CropGuard AI</h3>
+            <p class="bp-desc">
+              Developed a full-stack AI system for crop disease detection using image analysis, supporting diagnostics across multiple crops and diseases.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">Python</span>
+              <span class="bp-tech">React.js</span>
+              <span class="bp-tech">Node.js</span>
+              <span class="bp-tech">Express</span>
+              <span class="bp-tech">MongoDB</span>
+            </div>
+            <a href="https://github.com/LakshmiSagar570/CropGuard" target="_blank" class="bp-link">
+              View Repository Specs
+            </a>
+          </div>
+        </div>
+
+        <!-- Blueprint card 3: UCIS -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// CLOUD GEOSPATIAL INTELLIGENCE</div>
+            <h3 class="bp-title">UCIS — Urban Cooling Intelligence System</h3>
+            <p class="bp-desc">
+              Full-stack heat island detection and urban cooling intervention planning system. Processes Sentinel-2 and Landsat satellite imagery with geospatial PostGIS analysis to identify surface heat hotspots.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">FastAPI</span>
+              <span class="bp-tech">PostGIS</span>
+              <span class="bp-tech">Supabase</span>
+              <span class="bp-tech">React</span>
+              <span class="bp-tech">TypeScript</span>
+            </div>
+            <a href="#" class="bp-link" onclick="alert('Repository is currently private under active development.'); return false;">
+              Private Repository
+            </a>
+          </div>
+        </div>
+
+        <!-- Blueprint card 4: SoilTwin -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// SOIL INFRASTRUCTURE DIGITAL TWIN</div>
+            <h3 class="bp-title">SoilTwin</h3>
+            <p class="bp-desc">
+              Full-stack digital twin dashboard providing real-time soil analytics, dynamic charts, and machine learning models predicting soil composition and agricultural characteristics.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">TypeScript</span>
+              <span class="bp-tech">Python</span>
+              <span class="bp-tech">JavaScript</span>
+              <span class="bp-tech">CSS</span>
+            </div>
+            <a href="https://github.com/LakshmiSagar570/SoilTwin" target="_blank" class="bp-link">
+              View Repository Specs
+            </a>
+          </div>
+        </div>
+
+        <!-- Blueprint card 5: AssumptionX -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// AI DECISION ANALYTICS LAYER</div>
+            <h3 class="bp-title">AssumptionX</h3>
+            <p class="bp-desc">
+              AI-powered web dashboard that identifies and challenges hidden assumptions in business plans and decisions to prevent strategic failures.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">Next.js</span>
+              <span class="bp-tech">TypeScript</span>
+              <span class="bp-tech">Tailwind CSS</span>
+              <span class="bp-tech">PostgreSQL</span>
+            </div>
+            <a href="https://assumption-x.vercel.app/" target="_blank" class="bp-link">
+              Visit Live Endpoint
+            </a>
+          </div>
+        </div>
+
+        <!-- Blueprint card 6: Mood Journal -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// INTERNSHIP LOGISTICS SYSTEM</div>
+            <h3 class="bp-title">Mood Journal</h3>
+            <p class="bp-desc">
+              Built as a primary internship deliverable. A daily mood logging application featuring JWT auth, tracking statistics, historical mood calendars, and interactive visualizations.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">Angular</span>
+              <span class="bp-tech">.NET Core</span>
+              <span class="bp-tech">C#</span>
+              <span class="bp-tech">PostgreSQL</span>
+              <span class="bp-tech">Chart.js</span>
+            </div>
+            <a href="https://github.com/LakshmiSagar570/MoodJournal" target="_blank" class="bp-link">
+              View Repository Specs
+            </a>
+          </div>
+        </div>
+
+        <!-- Blueprint card 7: EthosForge -->
+        <div class="blueprint-card tilt-card">
+          <div>
+            <div class="bp-header">// FRAUD DETECTION MODEL</div>
+            <h3 class="bp-title">EthosForge</h3>
+            <p class="bp-desc">
+              Ensemble machine learning classifier tailored for financial transaction auditing and fraud detection, placing high emphasis on data preprocessing and model interpretability.
+            </p>
+          </div>
+          <div>
+            <div class="bp-stack">
+              <span class="bp-tech">Python</span>
+              <span class="bp-tech">Scikit-learn</span>
+              <span class="bp-tech">Pandas</span>
+            </div>
+            <a href="https://github.com/LakshmiSagar570/EthosForge" target="_blank" class="bp-link">
+              View Repository Specs
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         05 — ACADEMIC RESEARCH TIMELINE
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="research">
+      <div class="section-header">
+        <div class="section-label">05 — Academic Papers</div>
+        <h2 class="section-title">Research &amp; <span class="gradient">Publications</span></h2>
+      </div>
+
+      <div class="research-grid">
+        <div class="research-featured">
+          <div>
+            <div class="res-status"><div class="tel-dot"></div>Selected for Oral Presentation</div>
+            <h3 class="res-title">ICTIS 2026 — Springer Lecture Notes (Paper ID 1235)</h3>
+            <p class="res-desc">
+              Accepted at the International Conference on Trends in Intelligent Systems (ICTIS) 2026. Published in Springer's "Lecture Notes in Networks and Systems" series. Selected for oral plenary presentation in Bangkok, Thailand.
+            </p>
+          </div>
+          <div class="res-meta-table">
+            <div class="res-meta-col">
+              <span class="res-meta-lbl">Publisher Group</span>
+              <span class="res-meta-val">Springer LNNS</span>
+            </div>
+            <div class="res-meta-col">
+              <span class="res-meta-lbl">Conference Venue</span>
+              <span class="res-meta-val">Bangkok, TH</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="research-list">
+          <div class="research-item-card">
+            <div class="res-item-tag">// CO-AUTHOR // ICTIS 2026</div>
+            <h4 class="res-item-title">LLMs in Engineering Education</h4>
+            <p class="res-item-desc">
+              Survey paper mapping optimization thresholds and deployment limits of generative text models in undergraduate technical pipelines.
+            </p>
+          </div>
+
+          <div class="research-item-card">
+            <div class="res-item-tag">// IN-PROGRESS // IEEE FORMAT</div>
+            <h4 class="res-item-title">Student Performance Clustering Study</h4>
+            <p class="res-item-desc">
+              Comparative analysis evaluates PCA reductions alongside ten algorithmic setups (including spectral and DBSCAN parameters).
+            </p>
+          </div>
+
+          <div class="research-item-card">
+            <div class="res-item-tag">// PROPOSED LAYOUT // SVNIT SSIP</div>
+            <h4 class="res-item-title">RAG Failure Modes Under Corpus Drift</h4>
+            <p class="res-item-desc">
+              Formulating vector database retrieval failure properties when the temporal corpus distribution drifts from initial weights.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         06 — CONTACT TERMINAL
+         ═══════════════════════════════════════════════════════════ -->
+    <section id="contact">
+      <div class="contact-wrapper">
+        <h2 class="contact-title">Compile a <span class="glow">Connection</span></h2>
+        <p class="contact-text">
+          Open to research collaborations, high-throughput inference engineering roles, and compiler projects. Let's build the frontier.
+        </p>
+
+        <div class="contact-deck">
+          <a class="contact-spec-btn" href="https://github.com/LakshmiSagar570" target="_blank">
+            <div class="contact-btn-icon">🗲</div>
+            <div class="contact-link-text">
+              <span class="contact-btn-lbl">GitHub spec profile</span>
+              <span class="contact-btn-val">LakshmiSagar570</span>
+            </div>
+          </a>
+
+          <a class="contact-spec-btn" href="https://linkedin.com" target="_blank">
+            <div class="contact-btn-icon">🗲</div>
+            <div class="contact-link-text">
+              <span class="contact-btn-lbl">LinkedIn Node</span>
+              <span class="contact-btn-val">lakshmisagarseshadri</span>
+            </div>
+          </a>
+
+          <a class="contact-spec-btn contact-btn-wide" href="mailto:lakshmisagar570@gmail.com">
+            <div class="contact-btn-icon">🗲</div>
+            <div class="contact-link-text">
+              <span class="contact-btn-lbl">Direct serving Email Gateway</span>
+              <span class="contact-btn-val">lakshmisagar570@gmail.com</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div>LAKSHMI SAGAR SESHADRI // MITS 2023–27</div>
+      <div class="footer-right">[ SYSTEM COMPILED SUCCESSFULLY ]</div>
+    </footer>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       INTERACTION SCRIPT ENGINE
+       ═══════════════════════════════════════════════════════════ -->
+  <script>
+    /* ═══════════════════════════════════════════════════════════
+       LOADER SCREEN
+       ═══════════════════════════════════════════════════════════ */
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+        setTimeout(() => document.getElementById('loader').remove(), 800);
+      }, 1000);
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       SYSTEM STATUS & TELEMETRY LIVE UPDATES
+       ═══════════════════════════════════════════════════════════ */
+    const sysLoad = document.getElementById('sys-load');
+    const sysTemp = document.getElementById('sys-temp');
+    const sysVram = document.getElementById('sys-vram');
+    
+    const gpuEffVal = document.getElementById('gpu-eff-val');
+    const gpuEffBar = document.getElementById('gpu-eff-bar');
+    const cacheCompVal = document.getElementById('cache-comp-val');
+    const cacheCompBar = document.getElementById('cache-comp-bar');
+    const threadOccVal = document.getElementById('thread-occ-val');
+    const threadOccBar = document.getElementById('thread-occ-bar');
+
+    setInterval(() => {
+      // Simulate live variation of systems parameters
+      const currentLoad = (88 + Math.random() * 8).toFixed(1);
+      const currentTemp = Math.floor(66 + Math.random() * 6);
+      const currentVram = (76.8 + Math.random() * 2.2).toFixed(1);
+
+      sysLoad.textContent = `${currentLoad}%`;
+      sysTemp.textContent = `${currentTemp}°C`;
+      sysVram.textContent = `${currentVram} GB / 80.0 GB`;
+
+      // Update Bento gauges
+      const eff = Math.floor(90 + Math.random() * 8);
+      gpuEffVal.textContent = `${eff}%`;
+      gpuEffBar.style.width = `${eff}%`;
+
+      const comp = Math.floor(78 + Math.random() * 10);
+      cacheCompVal.textContent = `${comp}%`;
+      cacheCompBar.style.width = `${comp}%`;
+
+      const occ = Math.floor(84 + Math.random() * 12);
+      threadOccVal.textContent = `${occ}%`;
+      threadOccBar.style.width = `${occ}%`;
+    }, 2000);
+
+    /* ═══════════════════════════════════════════════════════════
+       THREE.JS — HERO PAGEDATTENTION CACHE CONSOLE VISUALIZER
+       ═══════════════════════════════════════════════════════════ */
+    let allocatePage, simulateToken, freeCache;
+    (function(){
+      const viewport = document.getElementById('sim-3d-viewport');
+      const canvas = document.getElementById('paged-attention-canvas');
+      if (!viewport || !canvas) return;
+
+      const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+      renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, viewport.clientWidth / viewport.clientHeight, 0.1, 100);
+      camera.position.set(0, 4, 10);
+      camera.lookAt(0, 0, 0);
+
+      // Light parameters
+      const isLightMode = document.body.classList.contains('light-mode');
+      const dirLight = new THREE.DirectionalLight(isLightMode ? 0x0284c7 : 0x00f0ff, 1);
+      dirLight.position.set(5, 10, 7);
+      scene.add(dirLight);
+      const ambLight = new THREE.AmbientLight(isLightMode ? 0xcccccc : 0x050515);
+      scene.add(ambLight);
+
+      // Grid of page blocks (simulated VRAM Blocks)
+      const blocksGroup = new THREE.Group();
+      scene.add(blocksGroup);
+
+      const boxGeom = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+      const totalBlocks = 36;
+      const blockMeshes = [];
+
+      window.updateThreeJSTheme = function(isLight) {
+        if (!blockMeshes || !dirLight || !ambLight) return;
+        blockMeshes.forEach(mesh => {
+          const currentHex = mesh.material.color.getHex();
+          if (currentHex === 0x111625 || currentHex === 0xe2e8f0) {
+            mesh.material.color.setHex(isLight ? 0xe2e8f0 : 0x111625);
+          }
+        });
+        dirLight.color.setHex(isLight ? 0x0284c7 : 0x00f0ff);
+        ambLight.color.setHex(isLight ? 0xcccccc : 0x050515);
+      };
+
+      for(let i = 0; i < totalBlocks; i++) {
+        // Grid layout coordinates
+        const x = (i % 6) - 2.5;
+        const z = Math.floor(i / 6) - 2.5;
+        
+        // Initial inactive color representation
+        const mat = new THREE.MeshPhongMaterial({
+          color: isLightMode ? 0xe2e8f0 : 0x111625,
+          transparent: true,
+          opacity: 0.8,
+          shininess: 30
+        });
+        const mesh = new THREE.Mesh(boxGeom, mat);
+        mesh.position.set(x * 1.1, 0, z * 1.1);
+        blocksGroup.add(mesh);
+        blockMeshes.push(mesh);
+      }
+
+      // Live interfaces hooks
+      allocatePage = function() {
+        // Randomly highlight 4-8 blocks to cyan representing cache allocations
+        document.getElementById('sys-compiler').textContent = 'ALLOCATING_BLOCKS';
+        blockMeshes.forEach(mesh => {
+          if (Math.random() > 0.65) {
+            mesh.material.color.setHex(0x00f0ff);
+            mesh.scale.set(1.2, 1.2, 1.2);
+          }
+        });
+        setTimeout(() => {
+          document.getElementById('sys-compiler').textContent = 'IDLE';
+        }, 1000);
+      };
+
+      simulateToken = function() {
+        // Sequentially route green tokens through highlighted blocks
+        document.getElementById('sys-compiler').textContent = 'ROUTING_TOKENS';
+        let step = 0;
+        const interval = setInterval(() => {
+          if (step >= totalBlocks) {
+            clearInterval(interval);
+            document.getElementById('sys-compiler').textContent = 'IDLE';
+            return;
+          }
+          const mesh = blockMeshes[step];
+          if(mesh.material.color.getHex() === 0x00f0ff) {
+            mesh.material.color.setHex(0x00ff66);
+            mesh.rotation.y += Math.PI / 4;
+          }
+          step++;
+        }, 40);
+      };
+
+      freeCache = function() {
+        // Restore all blocks back to inactive dark states
+        document.getElementById('sys-compiler').textContent = 'DEALLOCATING_CACHE';
+        blockMeshes.forEach(mesh => {
+          mesh.material.color.setHex(0x111625);
+          mesh.scale.set(1, 1, 1);
+        });
+        setTimeout(() => {
+          document.getElementById('sys-compiler').textContent = 'IDLE';
+        }, 800);
+      };
+
+      document.getElementById('allocate-page-btn').addEventListener('click', (e) => {
+        document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        allocatePage();
+      });
+
+      document.getElementById('generate-token-btn').addEventListener('click', (e) => {
+        document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        simulateToken();
+      });
+
+      document.getElementById('free-cache-btn').addEventListener('click', (e) => {
+        document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        freeCache();
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        
+        // Spin the layout slightly for visual 3D dynamism
+        blocksGroup.rotation.y += 0.002;
+        blocksGroup.rotation.x = Math.sin(Date.now() * 0.0005) * 0.15;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        if(!viewport.clientWidth) return;
+        camera.aspect = viewport.clientWidth / viewport.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+      });
+    })();
+
+    /* ═══════════════════════════════════════════════════════════
+       TRITON ATTENTION KERNEL PLAYGROUND ENGINE
+       ═══════════════════════════════════════════════════════════ */
+    (function(){
+      const mSlider = document.getElementById('block-m-slider');
+      const nSlider = document.getElementById('block-n-slider');
+      const mVal = document.getElementById('block-m-val');
+      const nVal = document.getElementById('block-n-val');
+      const runBtn = document.getElementById('run-kernel-btn');
+      const logBox = document.getElementById('kernel-log');
+
+      const cellsQ = document.querySelectorAll('#matrix-q-grid .matrix-cell');
+      const cellsK = document.querySelectorAll('#matrix-k-grid .matrix-cell');
+      const cellsV = document.querySelectorAll('#matrix-v-grid .matrix-cell');
+      const sramCells = document.querySelectorAll('#shared-sram-buffer .sram-cell');
+
+      mSlider.addEventListener('input', () => mVal.textContent = mSlider.value);
+      nSlider.addEventListener('input', () => nVal.textContent = nSlider.value);
+
+      runBtn.addEventListener('click', () => {
+        runBtn.disabled = true;
+        document.getElementById('sys-compiler').textContent = 'COMPILING_KERNEL';
+        
+        logBox.innerHTML = '';
+        appendLog('triton-compiler> Initiating attention_kernel compilation...', 'prompt');
+        
+        setTimeout(() => {
+          appendLog(`[INFO] Parameters calibrated: BLOCK_M=${mSlider.value}, BLOCK_N=${nSlider.value}, warp_count=4`, 'info');
+        }, 400);
+
+        setTimeout(() => {
+          appendLog('[INFO] Allocation check: allocating 64 KB shared memory buffers in SM L1 SRAM...', 'info');
+          // Start animation phase 1: loading inputs from HBM
+          animateHBMGrid(cellsQ, 'active-q');
+          animateHBMGrid(cellsK, 'active-k');
+          animateHBMGrid(cellsV, 'active-v');
+        }, 1000);
+
+        setTimeout(() => {
+          appendLog('[PTX] Compiling kernels assembly representations...', 'info');
+          // Animation phase 2: loading tiles to shared memory SRAM
+          sramCells.forEach((c, idx) => {
+            setTimeout(() => c.classList.add('loading'), idx * 150);
+          });
+        }, 2200);
+
+        setTimeout(() => {
+          appendLog('[SUCCESS] Compilation successful. Fusing attention logic layers.', 'success');
+        }, 3400);
+
+        setTimeout(() => {
+          // Final benchmark output
+          appendLog('----------------------------------------------------', '');
+          appendLog(`[BENCHMARK] Executed in 0.082ms (Triton compile speedup 2.44x)`, 'success');
+          appendLog(`[BENCHMARK] Peak SRAM Bandwidth: 1.84 TB/s`, 'success');
+          appendLog(`[BENCHMARK] Total Floating Point Computations: ${(mSlider.value * nSlider.value * 2).toLocaleString()} GFLOPS`, 'success');
+          
+          // Clear animations
+          cellsQ.forEach(c => c.classList.remove('active-q'));
+          cellsK.forEach(c => c.classList.remove('active-k'));
+          cellsV.forEach(c => c.classList.remove('active-v'));
+          sramCells.forEach(c => c.classList.remove('loading'));
+
+          runBtn.disabled = false;
+          document.getElementById('sys-compiler').textContent = 'IDLE';
+        }, 4500);
+      });
+
+      function appendLog(text, className) {
+        const line = document.createElement('div');
+        line.className = `kernel-line ${className}`;
+        line.textContent = text;
+        logBox.appendChild(line);
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+
+      function animateHBMGrid(cells, className) {
+        cells.forEach((cell, idx) => {
+          setTimeout(() => {
+            cell.classList.add(className);
+          }, idx * 40);
+        });
+      }
+    })();
+
+    /* ═══════════════════════════════════════════════════════════
+       SYSTEM INTERACTION DYNAMICS (Magnetic, tilt, target cursor)
+       ═══════════════════════════════════════════════════════════ */
+    // Target Cursor Follow
+    const cursor = document.getElementById('sys-cursor');
+    window.addEventListener('mousemove', e => {
+      cursor.style.left = `${e.clientX}px`;
+      cursor.style.top = `${e.clientY}px`;
+    });
+
+    document.querySelectorAll('a, button, input, .sim-btn').forEach(item => {
+      item.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+      item.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+    });
+
+    // Magnetic buttons setup
+    document.querySelectorAll('.magnetic').forEach(btn => {
+      btn.addEventListener('mousemove', e => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width/2;
+        const y = e.clientY - rect.top - rect.height/2;
+        btn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'translate(0, 0)';
+        btn.style.transition = 'transform 0.3s ease';
+        setTimeout(() => btn.style.transition = '', 300);
+      });
+    });
+
+    // 3D Perspective Card Tilt
+    document.querySelectorAll('.tilt-card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width/2;
+        const y = e.clientY - rect.top - rect.height/2;
+        const rX = -(y / rect.height) * 8;
+        const rY = (x / rect.width) * 8;
+        card.style.transform = `perspective(1000px) rotateX(${rX}deg) rotateY(${rY}deg) scale(1.02)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
+        card.style.transition = 'transform 0.4s ease';
+        setTimeout(() => card.style.transition = '', 400);
+      });
+    });
+
+    // Scramble text effect on load
+    (function(){
+      const chars = '01#@$%&^*';
+      const scramble = document.querySelectorAll('[data-scramble]');
+      scramble.forEach(el => {
+        const original = el.dataset.scramble;
+        let count = 0;
+        const max = 25;
+        function tick() {
+          if (count >= max) {
+            el.textContent = original;
+            return;
+          }
+          const ratio = count / max;
+          let text = '';
+          for(let i=0; i<original.length; i++) {
+            if (original[i] === ' ') { text += ' '; continue; }
+            if (i / original.length < ratio) {
+              text += original[i];
+            } else {
+              text += chars[Math.floor(Math.random()*chars.length)];
+            }
+          }
+          el.textContent = text;
+          count++;
+          requestAnimationFrame(tick);
+        }
+        tick();
+      });
+    })();
+
+    // Theme Toggle Handler
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const themeToggle = document.getElementById('theme-toggle');
+      if (!themeToggle) return;
+
+      function applyTheme(isLight) {
+        if (isLight) {
+          document.body.classList.add('light-mode');
+        } else {
+          document.body.classList.remove('light-mode');
+        }
+        if (window.updateThreeJSTheme) {
+          window.updateThreeJSTheme(isLight);
+        }
+      }
+
+      // Initial check
+      if (savedTheme === 'light') {
+        applyTheme(true);
+      }
+
+      themeToggle.addEventListener('click', () => {
+        const currentlyLight = document.body.classList.contains('light-mode');
+        const nextLight = !currentlyLight;
+        applyTheme(nextLight);
+        localStorage.setItem('theme', nextLight ? 'light' : 'dark');
+      });
+    })();
+  </script>
+</body>
+</html>
