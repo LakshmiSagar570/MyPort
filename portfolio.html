@@ -4,6 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lakshmi Sagar Seshadri | AI Architect</title>
+    <!-- ====== SEO CORE ====== -->
+    <meta name="description" content="Lakshmi Sagar Seshadri — AI Architect, ML Systems Engineer, and B.Tech CSE (AI/ML) student at MITS. Builder of LFAN super-resolution network, LLM inference engines, and geospatial AI systems. GATE DA qualified, Springer LNNS published.">
+    <meta name="keywords" content="Lakshmi Sagar, Lakshmi Sagar Seshadri, AI Architect, ML Engineer, MITS, LFAN, geospatial AI, LLM inference, portfolio">
+    <meta name="author" content="Lakshmi Sagar Seshadri">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://lakshmisagarportfolio.vercel.app/">
+
+    <!-- ====== OPEN GRAPH (LinkedIn, WhatsApp, Discord previews) ====== -->
+    <meta property="og:type" content="profile">
+    <meta property="og:title" content="Lakshmi Sagar Seshadri — AI Architect & ML Engineer">
+    <meta property="og:description" content="Builder of LFAN (731K param super-resolution), LLM inference engines, and geospatial AI systems. B.Tech CSE (AI/ML) · MITS · Springer LNNS published · GATE DA qualified.">
+    <meta property="og:url" content="https://lakshmisagarportfolio.vercel.app/">
+    <meta property="og:image" content="https://lakshmisagarportfolio.vercel.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="en_IN">
+    <meta property="profile:first_name" content="Lakshmi Sagar">
+    <meta property="profile:last_name" content="Seshadri">
+
+    <!-- ====== TWITTER CARD ====== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Lakshmi Sagar Seshadri — AI Architect">
+    <meta name="twitter:description" content="LFAN · LLM Inference Engines · Geospatial AI · Springer LNNS · GATE DA">
+    <meta name="twitter:image" content="https://lakshmisagarportfolio.vercel.app/og-image.png">
+
+    <!-- ====== STRUCTURED DATA: PERSON SCHEMA ====== -->
+    <script type="application/ld+json">
+    {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Lakshmi Sagar Seshadri",
+    "alternateName": ["Lakshmi Sagar", "L.S.S."],
+    "url": "https://lakshmisagarportfolio.vercel.app/",
+    "image": "https://lakshmisagarportfolio.vercel.app/og-image.png",
+    "jobTitle": "AI Architect",
+    "description": "AI/ML Engineer specializing in neural network design, LLM inference optimization, and geospatial intelligence systems.",
+    "alumniOf": {
+        "@type": "CollegeOrUniversity",
+        "name": "Madanapalle Institute of Technology and Science",
+        "sameAs": "https://mits.ac.in"
+    },
+    "email": "lakshmisagar918@gmail.com",
+    "sameAs": [
+        "https://github.com/LakshmiSagar570",
+        "https://www.linkedin.com/in/lakshmi-sagar-seshadri-9295812b4/",
+        "https://lakshmisagar570.github.io/Portfolio/"
+    ],
+    "knowsAbout": [
+        "Machine Learning", "Deep Learning", "LLM Systems",
+        "Geospatial AI", "Super Resolution", "Neural Networks",
+        "FastAPI", "PyTorch", "Python"
+    ]
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
@@ -643,6 +697,83 @@
             transform:translateY(-50%) rotate(180deg);
         }
         html:not(.dark) .section-label { color:rgba(0,0,0,0.15); }
+        /* ====================== MOBILE FIXES ====================== */
+        /* Bug 1: cursor:none hides the native cursor on phones */
+        @media (pointer: coarse) {
+        body {
+            cursor: auto !important;
+        }
+        .cursor-crosshair {
+            display: none !important;
+        }
+        /* Restore pointer cursor on interactive elements */
+        a, button, .hover-target {
+            cursor: pointer !important;
+        }
+        }
+
+        /* Bug 2: .section-label with left:-3rem causes horizontal scroll */
+        @media (max-width: 768px) {
+        .section-label {
+            display: none;
+        }
+        }
+
+        /* Bug 3: Projects grid auto-rows 360px min is too tall on mobile */
+        @media (max-width: 768px) {
+    #work .grid {
+        grid-auto-rows: auto;
+    }
+}
+
+        /* Bug 4: WebGL canvas kills performance on low-end phones */
+        @media (max-width: 768px) and (pointer: coarse) {
+        #webgl-canvas {
+            display: none;
+        }
+        }
+
+        /* Bug 5: Preloader name text too wide on 320px phones */
+        @media (max-width: 360px) {
+        .preloader-name span {
+            font-size: 1.1rem;
+            letter-spacing: -0.02em;
+        }
+        }
+
+        /* Bug 6: Nav badge can overflow on very small screens */
+        @media (max-width: 380px) {
+        nav .eyebrow.px-3 {
+            font-size: 0.5rem;
+            padding: 0.2rem 0.5rem;
+        }
+        #live-clock {
+            display: none;
+        }
+        }
+
+        /* Bug 7: Stats section borders on mobile (2-col grid) */
+        @media (max-width: 767px) {
+        /* Bottom row (items 3&4) shouldn't have bottom border */
+        .glass-strong .col-span-1:nth-child(3),
+        .glass-strong .col-span-1:nth-child(4) {
+            border-bottom: none;
+        }
+        }
+
+        /* General touch improvements */
+        @media (pointer: coarse) {
+        /* Minimum touch target size */
+        button, a {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        /* Disable hover transform on touch (cards jump on tap) */
+        .glass-panel:hover {
+            transform: none;
+        }
+        }
     </style>
 </head>
 <body class="selection:bg-black selection:text-white dark:selection:bg-amber-300 dark:selection:text-black">

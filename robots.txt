@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://lakshmisagarportfolio.vercel.app/sitemap.xml
